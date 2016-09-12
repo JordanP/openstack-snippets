@@ -114,7 +114,8 @@ def main():
     session = GerritSession(args.url, args.username, args.password)
 
     filter = {
-        'q': 'reviewer:self AND status:open AND age:1mon',
+        'q': ('reviewer:self AND status:open AND age:1mon ' +
+              'AND NOT label:Code-Review<0,self'),
     }
 
     loop = asyncio.get_event_loop()
