@@ -1,0 +1,5 @@
+include requirements.txt
+include tox.ini
+include tools/*
+exclude test-requirements.txt
+
