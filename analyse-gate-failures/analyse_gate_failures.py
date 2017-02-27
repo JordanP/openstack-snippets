@@ -7,6 +7,7 @@ import json
 import requests
 
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+SINCE = datetime.date.today() - datetime.timedelta(days=30)
 
 
 def parse_args():
@@ -32,14 +33,12 @@ def get_changes_of_interest(project):
     For a given project, get all the recent changes where at least one
     Gate failure happened.
     """
-    since = datetime.date.today() - datetime.timedelta(days=30)
-    search = ['reviewer:"Jenkins" AND comment:"Verified-2"',
-              'AND project:"%s" AND since:%s' % (project, since)
-              ]
+    search = ('reviewer:"Jenkins" AND comment:"Verified-2"'
+              'AND project:"%s" AND since:%s' % (project, SINCE))
 
     # Include review messages in query
     query = ("https://review.openstack.org/changes/?q=%s&"
-             "o=MESSAGES&o=DETAILED_ACCOUNTS" % ''.join(search))
+             "o=MESSAGES&o=DETAILED_ACCOUNTS" % search)
     r = requests.get(query)
     return json.loads(r.text[4:])
 
@@ -101,12 +100,16 @@ def main():
     jobs_stats = collections.defaultdict(dict)
 
     gate_failure_comments = get_all_gate_failures_for_project(args.project)
+    print("Jenkins left %d 'Verified-2' messages on project %s" % (
+        len(gate_failure_comments), args.project))
+
     for gate_failure_comment in gate_failure_comments:
         compute_stats_per_job(gate_failure_comment, jobs_stats)
 
     print("Note: the statistics don't show the absolute failure rate of a "
           "given job, but the failure rate knowing there's a Gate failure "
           "(i.e we don't account for changes where everything went smooth)")
+    print("Note: jobs that ran less than 10 times are not displayed here.")
 
     for job_name, job_stats in sorted(
             jobs_stats.items(), key=lambda x: x[1]['ko_rate'], reverse=True
